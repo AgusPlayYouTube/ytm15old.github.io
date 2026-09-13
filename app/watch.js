@@ -15,7 +15,11 @@ function renderWatchPage(parent) {
     insertYTmPlayer(playerCont2);
 
     const getWatchData = new XMLHttpRequest();
-    getWatchData.open('GET', APIbaseURL + 'api/v1/videos/' + playerVideoId, true);
+    /* getWatchData.open('GET', APIbaseURL + 'api/v1/videos/' + playerVideoId, true); */
+    /* getWatchData.setRequestHeader('Authorization','Basic eXRtMTU6SlFKNTNLckxBRVk2RTVxaGdjbTM4UGtTenczYlpYbWs='); */
+    getWatchData.open('GET', APIbaseURLNew + 'video/info?extend=1&geo=us&id=' + playerVideoId, true);
+    getWatchData.setRequestHeader('x-rapidapi-key', '4b0791fe33mshce00ad033774274p196706jsn957349df7a8f');
+    getWatchData.setRequestHeader('x-rapidapi-host', 'yt-api.p.rapidapi.com');
 
     getWatchData.onerror = function(event) {
     console.error("An error occurred with this operation (" + getWatchData.status + ")");
@@ -46,6 +50,8 @@ function renderWatchPage(parent) {
     getWatchData.onload = function() {
     if (getWatchData.status === 200) {
     const data = JSON.parse(getWatchData.response);
+
+    playerNextVideoId = data.relatedVideos.data[0].videoId;
 
     contItem.remove();
 
@@ -119,7 +125,7 @@ function renderWatchPage(parent) {
 
     ] 
     };
-    if (data.isListed == false) {
+    if (data.isUnlisted == true) {
     badgesData = {
     "badges": [
       {
@@ -146,7 +152,7 @@ function renderWatchPage(parent) {
     });
     const viewCount = document.createElement("div");
     viewCount.classList.add("video-metadata-view-count");
-    viewCount.innerHTML = `<span class="secondary-text" role="text" aria-label="${data.viewCount.toLocaleString() + " views"}">${data.viewCount.toLocaleString() + " views"}</span>`;
+    viewCount.innerHTML = `<span class="secondary-text" role="text" aria-label="${Number(data.viewCount).toLocaleString() + " views"}">${Number(data.viewCount).toLocaleString() + " views"}</span>`;
     metaTitleCont.appendChild(viewCount);
 
     metaHeaderCont.innerHTML = metaHeaderCont.innerHTML + `<ytm15-icon class="expand-icon" role="button" aria-label="Show more" aria-expanded="false"><svg viewBox="0 0 24 24" fill=""><path d="M7,10L12,15L17,10H7Z"></path></svg></ytm15-icon>`;
@@ -189,7 +195,7 @@ function renderWatchPage(parent) {
     const descInfo = document.createElement("div");
     descInfo.classList.add("video-metadata-info", "description-container");
     descInfo.innerHTML = `<div class="video-published-date"><span style="font-style:italic;opacity:.8;">Retrieving published date...</span></div>
-<div class="video-metadata-description user-text">${data.descriptionHtml}</div>`;
+<div class="video-metadata-description user-text">${data.description}</div>`;
     const getPublishDate = new XMLHttpRequest();
     getPublishDate.open('GET', 'https://yt.lemnoslife.com/noKey/videos?part=contentDetails,id,liveStreamingDetails,localizations,player,recordingDetails,snippet,statistics,status,topicDetails&id=' + playerVideoId, true);
  
@@ -209,6 +215,8 @@ function renderWatchPage(parent) {
       console.error("An error occurred with this operation (" + getPublishDate.status + ")");
       }
     };
+    const formattedDate = new Date(data.publishedAt).toLocaleDateString('en-US', options);
+    descInfo.querySelector(".video-published-date").innerHTML = "Published on " + formattedDate;
     metadataDescBox.appendChild(descInfo);
     if (descInfo.querySelectorAll('[href*="hashtag"]').toString() !== "") {
     Array.from(descInfo.querySelectorAll('[href*="hashtag"]')).forEach(function(item){
@@ -222,7 +230,7 @@ function renderWatchPage(parent) {
     descRow.classList.add("video-metadata-info", "metadata-row-box");
     descRow.innerHTML = `<div class="metadata-row-container">
 <div class="metadata-row">
-<span class="metadata-row-title">Category</span><span class="metadata-row-items"><span class="metadata-row-item">${data.genre}</span></span>
+<span class="metadata-row-title">Category</span><span class="metadata-row-items"><span class="metadata-row-item">${data.category}</span></span>
 </div>
 </div>`;
 
@@ -292,7 +300,7 @@ function renderWatchPage(parent) {
     mtrlBtnCont.setAttribute("is-busy", "false");
     mtrlBtnCont.ariaBusy = "false";
     mtrlBtnCont.setAttribute("disabled", "false");
-    videoMetadataLikeCount = data.likeCount.toLocaleString();
+    videoMetadataLikeCount = Number(data.likeCount).toLocaleString();
     videoMetadataLikeCountAL = "Like this video along with " + videoMetadataLikeCount + " other people";
     if (data.allowRatings == false) {
     videoMetadataLikeCount = "Like";
@@ -371,13 +379,13 @@ function renderWatchPage(parent) {
     itemSectOwner.querySelector(".lazy-list").appendChild(videoMetadata2);
 
     videoOwner.innerHTML = `
-<a class="video-owner-icon-and-title has-ripple" aria-label="Go to ${data.author}'s channel" href="#/channel/${data.authorId}">
+<a class="video-owner-icon-and-title has-ripple" aria-label="Go to ${data.channelTitle}'s channel" href="#/channel/${data.channelId}">
 <div class="profile-icon video-owner-prof-icon">
-<img class="profile-img ytm15-img lazy" loading="lazy" src="${data.authorThumbnails[2].url}"></img>
+<img class="profile-img ytm15-img lazy" loading="lazy" src="${data.channelThumbnail[2].url}"></img>
 </div>
 <div class="video-owner-bylines">
-<h3 class="video-owner-title">${data.author}</h3>
-<div class="video-owner-sub-count subhead">${data.subCountText} subscribers</div>
+<h3 class="video-owner-title">${data.channelTitle}</h3>
+<div class="video-owner-sub-count subhead">${data.subscriberCountText}<!-- subscribers --></div>
 </div>
 </a>
 <div class="video-owner-subscribe-button"></div>
@@ -403,13 +411,36 @@ function renderWatchPage(parent) {
     autonavBar.innerHTML = `<h3 class="autonav-bar-title">${Suggestions_text_string}</h3>`;
     itemSectRelated.querySelector(".lazy-list").appendChild(autonavBar);
 
-    data.recommendedVideos.forEach(function(item) {
-        compMediaItemThumb = item.videoThumbnails[3].url;
-        compMediaItemLength = item.lengthSeconds;
+    data.relatedVideos.data.forEach(function(item) {
+        if (item.type == "channel") {
+        compMediaItemThumb = "https:" + item.thumbnail[1].url;
+        compMediaItemLength = "";
+        compMediaItemTitle = item.channelTitle;
+        compMediaItemAuthor = item.subscriberCount + " subscribers";
+        compMediaItemvidId = "";
+        } else if (item.type == "playlist") {
+        compMediaItemThumb = item.thumbnail[0].url;
+        compMediaItemLength = item.videoCount;
+        if (item.videoCount == 0) {
+        compMediaItemLength = "50+";
+        }
         compMediaItemTitle = item.title;
-        compMediaItemAuthor = item.author;
+        compMediaItemAuthor = "";
+        compMediaItemvidId = item.playlistId;
+        } else if (item.type == "hashtag") {
+        compMediaItemThumb = "https://www.gstatic.com/youtube/img/social/hashtags/hashtag_tile_icon.png";
+        compMediaItemLength = item.videoCount;
+        compMediaItemTitle = item.title;
+        compMediaItemAuthor = item.channelCount;
+        compMediaItemvidId = item.url;
+        } else {
+        compMediaItemThumb = item.thumbnail[1].url;
+        compMediaItemLength = item.lengthText;
+        compMediaItemTitle = item.title;
+        compMediaItemAuthor = item.channelTitle;
         compMediaItemvidId = item.videoId;
-        renderCompactMediaItem(itemSectRelated.querySelector(".lazy-list"), "related-media-lazy-list", compMediaItemvidId, compMediaItemThumb, compMediaItemLength, compMediaItemTitle, compMediaItemAuthor, item.authorId, "", item.viewCount, "video");
+        }
+        renderCompactMediaItem(itemSectRelated.querySelector(".lazy-list"), "related-media-lazy-list", compMediaItemvidId, compMediaItemThumb, compMediaItemLength, compMediaItemTitle, compMediaItemAuthor, item.channelId, "", item.viewCount, item.type);
     });
 
     parent.innerHTML = "";

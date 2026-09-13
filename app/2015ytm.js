@@ -125,6 +125,8 @@ localStorageChange();
 });
 
 APIbaseURL = "https://inv.tux.pizza/";
+APIbaseURLNew = "https://yt-api.p.rapidapi.com/";
+APIbaseURLPiped = "https://pipedapi.leptons.xyz/";
 
 playerVideoId = "e";
 playerEmbedURL = "https://invidious.fi/embed/";
@@ -321,11 +323,26 @@ dataModeChange();
 
     const videoIdParam = urlParams.get("v");
 
-    const searchParamSort = urlParams.get("sort");
-    const searchParamDate = urlParams.get("date");
-    const searchParamDuration = urlParams.get("duration");
-    const searchParamType = urlParams.get("type");
-    const searchParamFeatures = urlParams.get("features");
+    var searchParamSort = urlParams.get("sort");
+    var searchParamDate = urlParams.get("date");
+    var searchParamDuration = urlParams.get("duration");
+    var searchParamType = urlParams.get("type");
+    var searchParamFeatures = urlParams.get("features");
+    if (urlParams.get("sort") == null) {
+    searchParamSort = "";
+    }
+    if (urlParams.get("date") == null) {
+    searchParamDate = "";
+    }
+    if (urlParams.get("duration") == null) {
+    searchParamDuration = "";
+    }
+    if (urlParams.get("type") == null) {
+    searchParamType = "";
+    }
+    if (urlParams.get("features") == null) {
+    searchParamFeatures = "";
+    }
 
 renderHeader();
 
@@ -403,7 +420,7 @@ function renderCompactMediaItem(parent, parentName, itemVideoId, itemThumbnail, 
 
         } else {
         /* time.textContent = item.lengthSeconds.toLocaleString() + ' secs'; */
-        if (itemLength > "3599") {
+        /* if (itemLength > "3599") {
         time.textContent = new Date(1000 * itemLength).toISOString().substr(11, 8)
         } else {
         time.textContent = new Date(1000 * itemLength).toISOString().substr(14, 5)
@@ -427,7 +444,8 @@ function renderCompactMediaItem(parent, parentName, itemVideoId, itemThumbnail, 
           console.error("An error occurred with this operation (" + getVideoLength.status + ")");
           }
         };
-        }
+        } */
+	time.textContent = itemLength;
         }
 
         const overlaySide = document.createElement('div');
@@ -435,7 +453,11 @@ function renderCompactMediaItem(parent, parentName, itemVideoId, itemThumbnail, 
 
         const overlaySideText = document.createElement('div');
         overlaySideText.classList.add('thumbnail-overlay-side-text');
+	if (itemLength !== "50+") {
+        overlaySideText.textContent = Number(itemLength).toLocaleString();
+        } else {
         overlaySideText.textContent = itemLength.toLocaleString();
+	}
         overlaySide.appendChild(overlaySideText);
         /* overlaySide.innerHTML += `<ytm15-icon class="playlist"><svg viewBox="0 0 24 24" fill=""><path d="M3.67 8.67h14V11h-14V8.67zm0-4.67h14v2.33h-14V4zm0 9.33H13v2.34H3.67v-2.34zm11.66 0v7l5.84-3.5-5.84-3.5z"></path></svg></ytm15-icon>`; */
         overlaySide.innerHTML += `<img class="ytm15-img-icon ytm15-img playlist-icon" src="ic_playlist.png"></img>`;
@@ -465,28 +487,50 @@ function renderCompactMediaItem(parent, parentName, itemVideoId, itemThumbnail, 
         }
 
         const vidCountByline = document.createElement('div');
+	if (itemLength !== "50+") {
+        vidCountByline.textContent = Number(itemLength).toLocaleString() + " videos";
+        } else {
         vidCountByline.textContent = itemLength.toLocaleString() + " videos";
+	}
         vidCountByline.classList.add('compact-media-byline', 'small-text');
 
         const vidCountStats = document.createElement('div');
+	if (itemLength !== "50+") {
+        vidCountStats.textContent = Number(itemLength).toLocaleString() + " videos";
+        } else {
         vidCountStats.textContent = itemLength.toLocaleString() + " videos";
+	}
+	if (mediaType == "hashtag") {
+        vidCountStats.textContent = itemLength;
+        }
         vidCountStats.classList.add('compact-media-stats', 'small-text');
 
         const hashChannelCount = document.createElement('div');
-        hashChannelCount.textContent = itemAuthor.toLocaleString() + " channels";
+	if (itemAuthor !== "50+") {
+        hashChannelCount.textContent = /* Number( */itemAuthor/* ).toLocaleString() + " channels" */;
+        } else {
+        hashChannelCount.textContent = itemAuthor /* .toLocaleString() + " channels" */;
+	}
         hashChannelCount.classList.add('compact-media-stats', 'small-text');
 
         if (mediaType == "channel") {
         vidCountByline.innerHTML = `<span style="font-style: italic;opacity: .8;">Retrieving video count...</span>`;
         const channelData = new XMLHttpRequest();
-        channelData.open('GET', 'https://yt.lemnoslife.com/channels?part=snippet,status,about&id=' + itemAuthorId, true);
+        /* channelData.open('GET', 'https://yt.lemnoslife.com/channels?part=snippet,status,about&id=' + itemAuthorId, true); */
+        channelData.open('GET', APIbaseURLNew + 'channel/about?id=' + itemAuthorId, true);
+        channelData.setRequestHeader('x-rapidapi-key', '4b0791fe33mshce00ad033774274p196706jsn957349df7a8f');
+        channelData.setRequestHeader('x-rapidapi-host', 'yt-api.p.rapidapi.com');
  
         channelData.send();
  
         channelData.onload = function(){
           if (channelData.status === 200) {
           const data1 = JSON.parse(channelData.response);
-          vidCountByline.textContent = data1.items[0].about.stats.videoCount.toLocaleString() + " videos";
+          /* vidCountByline.textContent = data1.items[0].about.stats.videoCount.toLocaleString() + " videos"; */
+          vidCountByline.textContent = Number(data1.videosCount).toLocaleString() + " videos";
+          if (data1.videosCount == null) {
+          vidCountByline.textContent = "No videos";
+          }
           } else {
           console.error("An error occurred with this operation (" + channelData.status + ")");
           }
@@ -506,7 +550,7 @@ function renderCompactMediaItem(parent, parentName, itemVideoId, itemThumbnail, 
         
         } else {
         if (itemViewCount !== null) {
-        views.textContent = itemViewCount.toLocaleString() + ' views';
+        views.textContent = Number(itemViewCount).toLocaleString() + ' views';
         } else {
         views.textContent = 'No views';
         }

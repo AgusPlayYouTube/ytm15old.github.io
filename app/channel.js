@@ -90,7 +90,11 @@ function channelPage() {
     };
 
     const getChannelData = new XMLHttpRequest();
-    getChannelData.open('GET', APIbaseURL + 'api/v1/channels/' + window.location.hash.split("/").join(',').split("?").join(',').split(',').slice(2, 3)[0], true);
+    /* getChannelData.open('GET', APIbaseURL + 'api/v1/channels/' + window.location.hash.split("/").join(',').split("?").join(',').split(',').slice(2, 3)[0], true); */
+    getChannelData.open('GET', APIbaseURLNew + 'channel/home?id=' + window.location.hash.split("/").join(',').split("?").join(',').split(',').slice(2, 3)[0], true);
+    /* getChannelData.setRequestHeader('Authorization','Basic eXRtMTU6SlFKNTNLckxBRVk2RTVxaGdjbTM4UGtTenczYlpYbWs='); */
+    getChannelData.setRequestHeader('x-rapidapi-key', '4b0791fe33mshce00ad033774274p196706jsn957349df7a8f');
+    getChannelData.setRequestHeader('x-rapidapi-host', 'yt-api.p.rapidapi.com');
  
     getChannelData.onerror = function(event) {
     console.error("An error occurred with this operation (" + getChannelData.status + ")");
@@ -135,12 +139,12 @@ function channelPage() {
     var spinner = document.querySelector(".spinner-container.full-height");
     spinner.setAttribute("hidden", "");
 
-    if (response.authorBanners.toString() == "") {
+    if (!response.meta.banner /* .toString() == "" */) {
     headerBar.setAttribute("style", "");
     };
 
-    if (response.authorBanners.toString() !== "") {
-    headerBar.setAttribute("style", "background: url(" + response.authorBanners[0].url + `);
+    if (response.meta.banner /* .toString() !== "" */) {
+    headerBar.setAttribute("style", "background: url(" + response.meta.banner[1].url + `);
     background-position: center;
     background-position-y: bottom;
     background-size: 10000000px;
@@ -153,17 +157,22 @@ function channelPage() {
     }
 
     /* const videosTabExists = response.tabs.find((item) => item === "videos"); */
-    const videosTabExists = response.tabs.find(function(item){return item === "videos"});
+    const videosTabExists = response.meta.tabs.map(word => word.toLowerCase()).find(function(item){return item === "videos"});
+    const homeTabExists = response.meta.tabs.map(word => word.toLowerCase()).find(function(item){return item === "home"});
+
+    if (!homeTabExists) {
+      response.meta.tabs.splice(0, 0, "home");
+    }
 
     if (CHANNELS_SEPARATE_VIDS_SHORTS_LIVE_TABS_expflag !== "true") {
      if (!videosTabExists) {
-      response.tabs.splice(1, 0, "videos");
+      response.meta.tabs.splice(1, 0, "videos");
      }
     }
 
-    response.tabs.push("channels");
+    response.meta.tabs.push("channels");
 
-    response.tabs.forEach(function(item) {
+    response.meta.tabs.map(word => word.toLowerCase()).forEach(function(item) {
     const tBTabCont = document.createElement("div");
     tBTabCont.classList.add("tabbar-tab-container", item + "-tab");
     tBTabCont.setAttribute('role', 'tab');
@@ -223,8 +232,8 @@ function channelPage() {
     tabBarTabs.appendChild(tBTabCont);
     tBTabCont.appendChild(tab);
 
-    headerTitle.setAttribute("aria-label", response.author);
-    headerTitle.textContent = response.author;
+    headerTitle.setAttribute("aria-label", response.meta.title);
+    headerTitle.textContent = response.meta.title;
 
     const page = document.createElement("page");
     page.classList.add('channelPage');
@@ -235,7 +244,7 @@ function channelPage() {
     tabsSpinner.setAttribute("hidden", "");
     tabContainer.appendChild(tabsSpinner);
 
-    response.tabs.forEach(function(item) {
+    response.meta.tabs.map(word => word.toLowerCase()).forEach(function(item) {
     const tabContent = document.createElement("div");
     tabContent.classList.add('tab-content');
     tabContent.setAttribute("tab-identifier", "Channel_page");
@@ -256,13 +265,13 @@ function channelPage() {
 
     const channelHeaderBanner = document.createElement("div");
     channelHeaderBanner.classList.add("channels-header-banner");
-    if (response.authorBanners.toString() == "") {
+    if (!response.meta.banner /* .toString() == "" */) {
     channelHeaderBanner.classList.add("empty");
     };
     const channelBannerImg = document.createElement("img");
     channelBannerImg.classList.add("channels-header-banner-img", "ytm15-img", "lazy");
-    if (response.authorBanners.toString() !== "") {
-    channelBannerImg.src = response.authorBanners[0].url;
+    if (response.meta.banner /* .toString() !== "" */) {
+    channelBannerImg.src = response.meta.banner[1].url;
     };
     channelBannerImg.loading = "lazy";
     channelBannerImg.onload = function(){channelBannerImg.classList.add('loaded');};
@@ -281,7 +290,7 @@ function channelPage() {
     cImage.classList.add('profile-img', 'ytm15-img', 'lazy');
     cImage.loading = "lazy";
     cImage.onload = function(){cImage.classList.add('loaded');};
-    cImage.src = response.authorThumbnails[4].url;
+    cImage.src = response.meta.avatar[2].url;
     profileIcon.appendChild(cImage);
 
     channelHeaderChannel.appendChild(profileIcon);
@@ -297,7 +306,7 @@ function channelPage() {
 
     const channelTitle = document.createElement("h1");
     channelTitle.classList.add("channels-header-title");
-    channelTitle.textContent = response.author;
+    channelTitle.textContent = response.meta.title;
 
     const channelSub = document.createElement("div");
     channelSub.classList.add("channels-header-subscribe-button");
@@ -308,11 +317,11 @@ function channelPage() {
 
     const channelSubCount = document.createElement("span");
     channelSubCount.classList.add("channels-header-subscriber-count", "secondary-text");
-    channelSubCount.textContent = response.subCount.toLocaleString() + " subscribers";
+    channelSubCount.textContent = response.meta.subscriberCount.toLocaleString() + " subscribers";
     channelSub.appendChild(channelSubCount);
 
     var chSubCountChange = setInterval(function(){
-     channelSubCount.textContent = response.subCount.toLocaleString() + " subscribers";
+     channelSubCount.textContent = response.subscriberCount.toLocaleString() + " subscribers";
      if (response.subCount !== 0) {
      clearInterval(chSubCountChange);
      }
@@ -1629,7 +1638,7 @@ function channelVideosContin(continuation, contItemParent) {
     page.appendChild(tabContainer);
 
     var title = document.querySelector("title");
-    title.textContent = response.author + ' - 2015YouTube';
+    title.textContent = response.meta.title  + ' - 2015YouTube';
 
     if (!document.querySelector(".tab-bar")) {
         headerBar.appendChild(tabBar);
